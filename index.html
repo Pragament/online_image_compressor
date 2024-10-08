@@ -1,0 +1,117 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Image Clipboard Compressor with Rotation</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 20px;
+        }
+        #preview {
+            margin-top: 20px;
+            max-width: 100%;
+            height: auto;
+        }
+        button {
+            padding: 10px 20px;
+            font-size: 16px;
+            cursor: pointer;
+            margin-right: 10px;
+        }
+    </style>
+</head>
+<body>
+    <h1>Image Clipboard Compressor with Rotation</h1>
+    <button onclick="processClipboardImage()">Paste Image</button>
+    <button onclick="rotateImage(90)">Rotate Clockwise</button>
+    <button onclick="rotateImage(-90)">Rotate Counterclockwise</button>
+    <p id="status"></p>
+    <img id="preview" src="" alt="Image Preview" />
+
+    <script>
+        let currentRotation = 0; // To track the current rotation angle
+        let imageBlob = null; // To store the image blob after pasting
+
+        // Function to rotate the image by a specified angle
+        function rotateImage(angle) {
+            currentRotation = (currentRotation + angle) % 360;
+            console.log('Rotating image by:', angle, 'degrees. Current rotation:', currentRotation);
+            if (imageBlob) {
+                renderImageWithRotation(imageBlob, currentRotation);
+            }
+        }
+
+        // Function to process the clipboard image
+        async function processClipboardImage() {
+            try {
+                const status = document.getElementById('status');
+                const preview = document.getElementById('preview');
+                status.textContent = 'Waiting for clipboard image...';
+                console.log('Step 1: Requesting clipboard items...');
+
+                // Request clipboard items
+                const clipboardItems = await navigator.clipboard.read();
+                console.log('Step 2: Clipboard items retrieved:', clipboardItems);
+
+                for (const item of clipboardItems) {
+                    // Check for supported image types
+                    const supportedTypes = ['image/png', 'image/jpeg'];
+                    const imageType = supportedTypes.find(type => item.types.includes(type));
+
+                    if (imageType) {
+                        console.log(`Step 3: Image type detected: ${imageType}`);
+
+                        // Get the image blob
+                        const blob = await item.getType(imageType);
+                        imageBlob = blob; // Store the blob for later use
+                        console.log('Step 4: Blob retrieved from clipboard:', blob);
+                        console.log('Blob type:', blob.type, 'Blob size:', blob.size);
+
+                        // Render image with the current rotation (initially no rotation)
+                        renderImageWithRotation(blob, currentRotation);
+                    } else {
+                        console.log('Step 3: No supported image type found in clipboard. Detected:', item.types);
+                        status.textContent = 'No image found in clipboard or unsupported image type.';
+                    }
+                }
+            } catch (err) {
+                console.error('Error occurred while processing clipboard image:', err);
+                document.getElementById('status').textContent = 'Error: Could not access clipboard.';
+            }
+        }
+
+        // Function to render the image with a given rotation angle
+        function renderImageWithRotation(blob, rotationAngle) {
+            const img = new Image();
+            img.src = URL.createObjectURL(blob);
+            console.log('Rendering image with rotation:', rotationAngle);
+
+            img.onload = () => {
+                const canvas = document.createElement('canvas');
+                const ctx = canvas.getContext('2d');
+
+                // Set canvas size based on rotation angle
+                if (rotationAngle % 180 === 0) {
+                    canvas.width = img.width;
+                    canvas.height = img.height;
+                } else {
+                    canvas.width = img.height;
+                    canvas.height = img.width;
+                }
+
+                // Apply rotation
+                ctx.translate(canvas.width / 2, canvas.height / 2);
+                ctx.rotate(rotationAngle * Math.PI / 180);
+                ctx.drawImage(img, -img.width / 2, -img.height / 2);
+
+                // Update preview image
+                const preview = document.getElementById('preview');
+                preview.src = canvas.toDataURL();
+                console.log('Image preview updated.');
+            };
+        }
+    </script>
+</body>
+</html>
