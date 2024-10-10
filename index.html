@@ -32,8 +32,8 @@
         <button onclick="rotateImage(-90)">Rotate Counterclockwise</button>
         
         <div>
-            <label for="quality">Compression Quality: <span id="quality-value">90</span>%</label>
-            <input id="quality" type="range" min="10" max="100" value="90" oninput="updateQuality(this.value)">
+            <label for="quality">Compression Quality: <span id="quality-value">1</span>%</label>
+            <input id="quality" type="range" min="1" max="100" value="1" oninput="updateQuality(this.value)">
         </div>
 
         <div>
@@ -46,7 +46,7 @@
         </div>
         
         <div>
-            <input id="auto-copy" type="checkbox" />
+            <input id="auto-copy" type="checkbox" checked />
             <label for="auto-copy">Automatically copy image to clipboard after each change</label>
         </div>
 
