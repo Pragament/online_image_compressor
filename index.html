@@ -33,6 +33,8 @@
                 style="border: 2px dashed #888; padding: 30px; text-align: center;">
                 <strong>Drag & Drop an image here</strong>
             </div>
+
+            <input type="file" accept="image/*" id="upload" />
             <button onclick="processClipboardImage()">Paste Image</button>
             <button onclick="rotateImage(90)">Rotate Clockwise</button>
             <button onclick="rotateImage(-90)">Rotate Counterclockwise</button>
@@ -60,6 +62,7 @@
             </div>
 
             <p>Compressed File Size: <span id="file-size">-</span> KB</p>
+            <button onclick="downloadImage()">Download Compressed Image</button>
         </div>
 
         <p id="status"></p>
@@ -206,6 +209,53 @@ dropZone.addEventListener('drop', async (e) => {
         document.getElementById('status').textContent = 'Please drop a valid image file.';
     }
 });
+
+// Upload button
+document.getElementById('upload').addEventListener('change', (e) => {
+    const file = e.target.files[0];
+    if (file && file.type.startsWith('image/')) {
+        imageBlob = file;
+        renderImageWithRotation(imageBlob, currentRotation, quality);
+    } else {
+        document.getElementById('status').textContent = 'Please select a valid image file.';
+    }
+});
+
+// Download button 
+function downloadImage() {
+    if (!imageBlob) {
+        alert("No image to download.");
+        return;
+    }
+
+    const img = new Image();
+    img.src = URL.createObjectURL(imageBlob);
+
+    img.onload = () => {
+        const canvas = document.createElement('canvas');
+        const ctx = canvas.getContext('2d');
+
+        if (currentRotation % 180 === 0) {
+            canvas.width = img.width;
+            canvas.height = img.height;
+        } else {
+            canvas.width = img.height;
+            canvas.height = img.width;
+        }
+
+        ctx.translate(canvas.width / 2, canvas.height / 2);
+        ctx.rotate(currentRotation * Math.PI / 180);
+        ctx.drawImage(img, -img.width / 2, -img.height / 2);
+
+        canvas.toBlob((blob) => {
+            const link = document.createElement('a');
+            link.href = URL.createObjectURL(blob);
+            link.download = 'compressed-image.' + selectedAlgorithm.split('/')[1];
+            link.click();
+        }, selectedAlgorithm, selectedAlgorithm === 'image/png' ? undefined : quality);
+    };
+}
+
 
     </script>
     </body>
