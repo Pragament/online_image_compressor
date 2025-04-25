@@ -1,10 +1,11 @@
 <!DOCTYPE html>
 <html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Image Clipboard Compressor with Rotation, Quality, and Algorithm</title>
-    <style>
+    <head>
+        <meta charset="UTF-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <title>Image Clipboard Compressor with Rotation, Quality, and
+            Algorithm</title>
+        <style>
         body {
             font-family: Arial, sans-serif;
             margin: 20px;
@@ -22,41 +23,49 @@
             margin: 20px 0;
         }
     </style>
-</head>
-<body>
-    <h1>Image Clipboard Compressor with Rotation, Quality, and Algorithm</h1>
-    
-    <div class="controls">
-        <button onclick="processClipboardImage()">Paste Image</button>
-        <button onclick="rotateImage(90)">Rotate Clockwise</button>
-        <button onclick="rotateImage(-90)">Rotate Counterclockwise</button>
-        
-        <div>
-            <label for="quality">Compression Quality: <span id="quality-value">1</span>%</label>
-            <input id="quality" type="range" min="1" max="100" value="1" oninput="updateQuality(this.value)">
+    </head>
+    <body>
+        <h1>Image Clipboard Compressor with Rotation, Quality, and
+            Algorithm</h1>
+
+        <div class="controls">
+            <div id="drop-zone"
+                style="border: 2px dashed #888; padding: 30px; text-align: center;">
+                <strong>Drag & Drop an image here</strong>
+            </div>
+            <button onclick="processClipboardImage()">Paste Image</button>
+            <button onclick="rotateImage(90)">Rotate Clockwise</button>
+            <button onclick="rotateImage(-90)">Rotate Counterclockwise</button>
+
+            <div>
+                <label for="quality">Compression Quality: <span
+                        id="quality-value">1</span>%</label>
+                <input id="quality" type="range" min="1" max="100" value="1"
+                    oninput="updateQuality(this.value)">
+            </div>
+
+            <div>
+                <label for="algorithm">Compression Algorithm:</label>
+                <select id="algorithm" onchange="updateAlgorithm()">
+                    <option value="image/jpeg">JPEG</option>
+                    <option value="image/png">PNG</option>
+                    <option value="image/webp">WebP</option>
+                </select>
+            </div>
+
+            <div>
+                <input id="auto-copy" type="checkbox" checked />
+                <label for="auto-copy">Automatically copy image to clipboard
+                    after each change</label>
+            </div>
+
+            <p>Compressed File Size: <span id="file-size">-</span> KB</p>
         </div>
 
-        <div>
-            <label for="algorithm">Compression Algorithm:</label>
-            <select id="algorithm" onchange="updateAlgorithm()">
-                <option value="image/jpeg">JPEG</option>
-                <option value="image/png">PNG</option>
-                <option value="image/webp">WebP</option>
-            </select>
-        </div>
-        
-        <div>
-            <input id="auto-copy" type="checkbox" checked />
-            <label for="auto-copy">Automatically copy image to clipboard after each change</label>
-        </div>
+        <p id="status"></p>
+        <img id="preview" src alt="Image Preview" />
 
-        <p>Compressed File Size: <span id="file-size">-</span> KB</p>
-    </div>
-    
-    <p id="status"></p>
-    <img id="preview" src="" alt="Image Preview" />
-
-    <script>
+        <script>
         let currentRotation = 0; // To track the current rotation angle
         let imageBlob = null; // To store the image blob after pasting
         let quality = 0.9; // Compression quality (initially set to 90%)
@@ -172,6 +181,32 @@
                 }, selectedAlgorithm, selectedAlgorithm === 'image/png' ? undefined : compressionQuality);
             };
         }
+
+       
+const dropZone = document.getElementById('drop-zone');
+
+dropZone.addEventListener('dragover', (e) => {
+    e.preventDefault();
+    dropZone.style.backgroundColor = '#eee';
+});
+
+dropZone.addEventListener('dragleave', () => {
+    dropZone.style.backgroundColor = '';
+});
+
+dropZone.addEventListener('drop', async (e) => {
+    e.preventDefault();
+    dropZone.style.backgroundColor = '';
+
+    const file = e.dataTransfer.files[0];
+    if (file && file.type.startsWith('image/')) {
+        imageBlob = file;
+        renderImageWithRotation(imageBlob, currentRotation, quality);
+    } else {
+        document.getElementById('status').textContent = 'Please drop a valid image file.';
+    }
+});
+
     </script>
-</body>
+    </body>
 </html>
