@@ -62,7 +62,7 @@
             </div>
 
             <p>Compressed File Size: <span id="file-size">-</span> KB</p>
-            <button onclick="downloadImage()">Download Compressed Image</button>
+            <button onclick="downloadCompressedImage()">Download Compressed Image</button>
         </div>
 
         <p id="status"></p>
@@ -83,129 +83,121 @@
             }
         }
 
-        // Function to update the selected compression algorithm
-        function updateAlgorithm() {
-            selectedAlgorithm = document.getElementById('algorithm').value;
-            console.log('Compression algorithm changed to:', selectedAlgorithm);
-            if (imageBlob) {
-                renderImageWithRotation(imageBlob, currentRotation, quality);
-            }
+    function updateAlgorithm() {
+      selectedAlgorithm = document.getElementById('algorithm').value;
+      if (imageBlob) {
+        renderImageWithRotation(imageBlob, currentRotation, quality);
+      }
+    }
+
+    function rotateImage(angle) {
+      currentRotation = (currentRotation + angle) % 360;
+      if (imageBlob) {
+        renderImageWithRotation(imageBlob, currentRotation, quality);
+      }
+    }
+
+    async function processClipboardImage() {
+      try {
+        const status = document.getElementById('status');
+        const clipboardItems = await navigator.clipboard.read();
+        for (const item of clipboardItems) {
+          const supportedTypes = ['image/png', 'image/jpeg'];
+          const imageType = supportedTypes.find(type => item.types.includes(type));
+          if (imageType) {
+            const blob = await item.getType(imageType);
+            imageBlob = blob;
+            renderImageWithRotation(blob, currentRotation, quality);
+          } else {
+            status.textContent = 'No image found in clipboard or unsupported type.';
+          }
+        }
+      } catch (err) {
+        document.getElementById('status').textContent = 'Error: Could not access clipboard.';
+      }
+    }
+
+    function renderImageWithRotation(blob, rotationAngle, compressionQuality) {
+      const img = new Image();
+      img.src = URL.createObjectURL(blob);
+
+      img.onload = () => {
+        const canvas = document.createElement('canvas');
+        const ctx = canvas.getContext('2d');
+
+        if (rotationAngle % 180 === 0) {
+          canvas.width = img.width;
+          canvas.height = img.height;
+        } else {
+          canvas.width = img.height;
+          canvas.height = img.width;
         }
 
-        // Function to rotate the image by a specified angle
-        function rotateImage(angle) {
-            currentRotation = (currentRotation + angle) % 360;
-            console.log('Rotating image by:', angle, 'degrees. Current rotation:', currentRotation);
-            if (imageBlob) {
-                renderImageWithRotation(imageBlob, currentRotation, quality);
-            }
+        ctx.translate(canvas.width / 2, canvas.height / 2);
+        ctx.rotate(rotationAngle * Math.PI / 180);
+        ctx.drawImage(img, -img.width / 2, -img.height / 2);
+
+        const preview = document.getElementById('preview');
+        preview.src = canvas.toDataURL();
+
+        canvas.toBlob(async (compressedBlob) => {
+          const fileSizeInKB = (compressedBlob.size / 1024).toFixed(2);
+          document.getElementById('file-size').textContent = fileSizeInKB;
+
+          if (document.getElementById('auto-copy').checked) {
+            const data = [new ClipboardItem({ [selectedAlgorithm]: compressedBlob })];
+            await navigator.clipboard.write(data);
+          }
+        }, selectedAlgorithm, selectedAlgorithm === 'image/png' ? undefined : compressionQuality);
+      };
+    }
+
+    function downloadCompressedImage() {
+      const img = new Image();
+      img.src = URL.createObjectURL(imageBlob);
+      img.onload = () => {
+        const canvas = document.createElement('canvas');
+        const ctx = canvas.getContext('2d');
+
+        if (currentRotation % 180 === 0) {
+          canvas.width = img.width;
+          canvas.height = img.height;
+        } else {
+          canvas.width = img.height;
+          canvas.height = img.width;
         }
 
-        // Function to process the clipboard image
-        async function processClipboardImage() {
-            try {
-                const status = document.getElementById('status');
-                const preview = document.getElementById('preview');
-                status.textContent = 'Waiting for clipboard image...';
-                console.log('Step 1: Requesting clipboard items...');
+        ctx.translate(canvas.width / 2, canvas.height / 2);
+        ctx.rotate(currentRotation * Math.PI / 180);
+        ctx.drawImage(img, -img.width / 2, -img.height / 2);
 
-                // Request clipboard items
-                const clipboardItems = await navigator.clipboard.read();
-                console.log('Step 2: Clipboard items retrieved:', clipboardItems);
+        canvas.toBlob((blob) => {
+          const link = document.createElement('a');
+          link.href = URL.createObjectURL(blob);
+          link.download = `compressed.${selectedAlgorithm.split('/')[1]}`;
+          document.body.appendChild(link);
+          link.click();
+          document.body.removeChild(link);
+        }, selectedAlgorithm, selectedAlgorithm === 'image/png' ? undefined : quality);
+      };
+    }
 
-                for (const item of clipboardItems) {
-                    // Check for supported image types
-                    const supportedTypes = ['image/png', 'image/jpeg'];
-                    const imageType = supportedTypes.find(type => item.types.includes(type));
-
-                    if (imageType) {
-                        console.log(`Step 3: Image type detected: ${imageType}`);
-
-                        // Get the image blob
-                        const blob = await item.getType(imageType);
-                        imageBlob = blob; // Store the blob for later use
-                        console.log('Step 4: Blob retrieved from clipboard:', blob);
-                        console.log('Blob type:', blob.type, 'Blob size:', blob.size);
-
-                        // Render image with the current rotation and quality (initially no rotation, 90% quality)
-                        renderImageWithRotation(blob, currentRotation, quality);
-                    } else {
-                        console.log('Step 3: No supported image type found in clipboard. Detected:', item.types);
-                        status.textContent = 'No image found in clipboard or unsupported image type.';
-                    }
-                }
-            } catch (err) {
-                console.error('Error occurred while processing clipboard image:', err);
-                document.getElementById('status').textContent = 'Error: Could not access clipboard.';
-            }
-        }
-
-        // Function to render the image with a given rotation angle and compression quality
-        function renderImageWithRotation(blob, rotationAngle, compressionQuality) {
-            const img = new Image();
-            img.src = URL.createObjectURL(blob);
-            console.log('Rendering image with rotation:', rotationAngle, 'and quality:', compressionQuality, 'Algorithm:', selectedAlgorithm);
-
-            img.onload = () => {
-                const canvas = document.createElement('canvas');
-                const ctx = canvas.getContext('2d');
-
-                // Set canvas size based on rotation angle
-                if (rotationAngle % 180 === 0) {
-                    canvas.width = img.width;
-                    canvas.height = img.height;
-                } else {
-                    canvas.width = img.height;
-                    canvas.height = img.width;
-                }
-
-                // Apply rotation
-                ctx.translate(canvas.width / 2, canvas.height / 2);
-                ctx.rotate(rotationAngle * Math.PI / 180);
-                ctx.drawImage(img, -img.width / 2, -img.height / 2);
-
-                // Update preview image
-                const preview = document.getElementById('preview');
-                preview.src = canvas.toDataURL();
-                console.log('Image preview updated.');
-
-                // Compress the image and handle auto-copy to clipboard
-                canvas.toBlob(async (compressedBlob) => {
-                    // Update the compressed file size in KB
-                    const fileSizeInKB = (compressedBlob.size / 1024).toFixed(2);
-                    document.getElementById('file-size').textContent = fileSizeInKB;
-
-                    if (document.getElementById('auto-copy').checked) {
-                        console.log('Auto-copy is enabled. Copying to clipboard...');
-                        const data = [new ClipboardItem({ [selectedAlgorithm]: compressedBlob })];
-                        await navigator.clipboard.write(data);
-                        console.log('Image copied to clipboard.');
-                    }
-                }, selectedAlgorithm, selectedAlgorithm === 'image/png' ? undefined : compressionQuality);
-            };
-        }
-
-       
-const dropZone = document.getElementById('drop-zone');
-
-dropZone.addEventListener('dragover', (e) => {
-    e.preventDefault();
-    dropZone.style.backgroundColor = '#eee';
-});
-
-dropZone.addEventListener('dragleave', () => {
-    dropZone.style.backgroundColor = '';
-});
-
-dropZone.addEventListener('drop', async (e) => {
-    e.preventDefault();
-    dropZone.style.backgroundColor = '';
-
-    const file = e.dataTransfer.files[0];
-    if (file && file.type.startsWith('image/')) {
+    const dropZone = document.getElementById('drop-zone');
+    dropZone.addEventListener('dragover', (e) => {
+      e.preventDefault();
+      dropZone.style.backgroundColor = '#eee';
+    });
+    dropZone.addEventListener('dragleave', () => {
+      dropZone.style.backgroundColor = '';
+    });
+    dropZone.addEventListener('drop', async (e) => {
+      e.preventDefault();
+      dropZone.style.backgroundColor = '';
+      const file = e.dataTransfer.files[0];
+      if (file && file.type.startsWith('image/')) {
         imageBlob = file;
         renderImageWithRotation(imageBlob, currentRotation, quality);
-    } else {
+      } else {
         document.getElementById('status').textContent = 'Please drop a valid image file.';
     }
 });
